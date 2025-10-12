@@ -1,0 +1,9 @@
+prompts:
+  general_statistics:
+    id: "5a6412f7-22b7-4a1a-8113-d36d4a9f0b6f"
+    title: "What "
+    topic: "general_statistics"
+    context_keys:
+      - "get_api_data"
+    cache_key: "{id}"
+    ttl_seconds: 3600  # 1 hour
