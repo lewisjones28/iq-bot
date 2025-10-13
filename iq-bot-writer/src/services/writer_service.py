@@ -1,6 +1,9 @@
 """Writer service for generating and managing prompt-contents responses."""
+import inspect
 import json
 import logging
+from typing import Any
+
 from iq_bot_global import (
     RedisService,
     extract_context_params
@@ -8,6 +11,7 @@ from iq_bot_global import (
 from .api.client import ApiClient
 from .openai_service import OpenAIService
 from .style_parser import StyleParser
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +40,7 @@ class WriterService:
             ValueError: If prompt not found or invalid
         """
         # Get prompt configuration from Redis
-        redis_key = f"{prompt_template_id}:{prompt_id}"
+        redis_key = f"prompt:{prompt_template_id}:{prompt_id}"
         cached_prompt = self.redis_service.get_cached_response(redis_key)
 
         if not cached_prompt:
@@ -140,3 +144,113 @@ class WriterService:
         cache_key = prompt_data['cache_key'].format(**params) if 'cache_key' in prompt_data else None
 
         return params, cache_key
+
+    def _get_api_data(self, params: dict, context_keys: list) -> dict:
+        """
+        Fetch and transform API data for all required context keys.
+
+        Args:
+            params: Parameters extracted from context
+            context_keys: List of API methods to call
+
+        Returns:
+            dict: Combined API response data
+        """
+        context_data = params.copy()
+
+        for context_key in context_keys:
+            api_data = self._get_context_data(context_key, params)
+            context_data[context_key] = api_data
+
+        return context_data
+
+    def _get_context_data(self, context_key: str, params: dict) -> Any:
+        """
+        Get resources based on context key from configuration.
+        Dynamically maps parameters from prompt contexts to method arguments
+        and includes all enriched parameters in the result.
+
+        Args:
+            context_key: The method name to call on the API client
+            params: Dictionary of parameters extracted from prompt contexts
+
+        Returns:
+            Any: The resources returned from the API client method, merged with all params
+
+        Raises:
+            ValueError: If method not found or parameters invalid
+        """
+        try:
+            method = getattr(self.api_client, context_key)
+
+            # Get the method's required parameters
+            method_params = inspect.signature(method).parameters
+
+            # Build parameters dictionary based on method's requirements
+            call_params = {}
+            for param_name in method_params:
+                # Try exact match first
+                if param_name in params:
+                    call_params[param_name] = params[param_name]
+                # If not found and param ends with '_id', try without '_id'
+                elif param_name.endswith('_id'):
+                    base_name = param_name[:-3]  # Remove '_id'
+                    if base_name in params:
+                        call_params[param_name] = params[base_name]
+
+            # Get the raw response from the API
+            raw_response = method(**call_params)
+            return raw_response
+        except AttributeError:
+            raise ValueError(f"Method {context_key} not found in API client")
+        except Exception as e:
+            raise ValueError(f"Error calling {context_key}: {str(e)}")
+
+    def _build_prompt(self, prompt_data: dict, context_data: dict) -> tuple[str, str]:
+        """
+        Build the final prompt and system message.
+
+        Args:
+            prompt_data: The prompt configuration
+            context_data: The context data including API responses
+
+        Returns:
+            tuple[str, str]: The prompt content and system message
+        """
+        # Get style guide
+        style_guide = self.style_parser.get_style_guide()
+
+        # Build the content prompt with API data
+        prompt_content = self._build_prompt_data(prompt_data['topic'], context_data)
+
+        # Build the prompt question and system message
+        prompt_question = prompt_data['title'].format(**context_data)
+        system = self._build_system(prompt_question, style_guide)
+
+        return prompt_content, system
+
+    def _build_prompt_data(self, prompt_topic: str, context_data: dict) -> str:
+        """Build prompt-contents resources using all context keys from the resources dictionary.""
+        """
+        with open(f'../resources/prompt-contents/{prompt_topic}.txt', 'r') as file:
+            content_template = file.read()
+
+        # Create formatting dictionary where each key is prefixed with 'f'
+        format_dict = {
+            f"f{key}": value
+            for key, value in context_data.items()
+        }
+
+        try:
+            return content_template.format(**format_dict)
+        except KeyError as e:
+            raise ValueError(f"Missing required key in template: {e}")
+
+    def _build_system(self, question: str, style_guide: str) -> str:
+        """Build system prompt-contents with style guide context."""
+        with open('../resources/system/system.txt', 'r') as file:
+            system_template = file.read()
+        return system_template.format(
+            fprompt=str(question),
+            fstyle_guide=str(style_guide)
+        )

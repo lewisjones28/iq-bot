@@ -1,9 +1,9 @@
 prompts:
   general_information:
     id: "5a6412f7-22b7-4a1a-8113-d36d4a9f0b6f"
-    title: "What house does {character} belong to?"
+    title: "Who are the characters in Harry Potter?"
     topic: "general_information"
     context_keys:
-      - "get_api_data"
-    cache_key: "{id}"
-    ttl_seconds: 3600  # 1 hour
+      - "get_characters"
+    cache_key: "{id}:get-characters"
+    ttl_seconds: 7200  # 2 hours

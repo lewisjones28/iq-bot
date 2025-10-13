@@ -1,0 +1,1 @@
+Characters Information: {fget_characters}

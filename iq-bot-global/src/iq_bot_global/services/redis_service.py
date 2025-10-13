@@ -100,6 +100,41 @@ class RedisService:
         try:
             logger.debug(f"Deleting cache record from Redis for key {cache_key}")
             self.redis_client.delete(cache_key)
+            return True
         except redis.RedisError as e:
             logger.error(f"Redis error: {e}")
             return False
+
+    def get_keys(self, pattern: str) -> list:
+        """
+        Get all keys matching the given pattern using Redis SCAN for efficiency.
+        
+        Args:
+            pattern: Pattern to match keys against (e.g., "prompt:*")
+            
+        Returns:
+            list: List of matching keys
+            
+        Raises:
+            redis.RedisError: If there's an error connecting to Redis
+        """
+        try:
+            logger.debug(f"Scanning Redis for keys matching pattern: {pattern}")
+            keys = []
+            cursor = 0
+            while True:
+                cursor, partial_keys = self.redis_client.scan(
+                    cursor=cursor,
+                    match=pattern,
+                    count=100  # Number of keys to return in each iteration
+                )
+                keys.extend(k.decode('utf-8') for k in partial_keys)
+                if cursor == 0:  # Scan complete
+                    break
+
+            logger.debug(f"Found {len(keys)} keys matching pattern {pattern}")
+            return keys
+
+        except redis.RedisError as e:
+            logger.error(f"Redis error during key scan: {e}")
+            return []

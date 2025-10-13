@@ -5,8 +5,8 @@ import logging
 from typing import Optional, Dict
 
 import requests
-from iq_bot_global import RedisService
 
+from iq_bot_global import RedisService
 from .config import ApiConfig
 from .endpoints import get_endpoint_path, get_endpoint_ttl
 
@@ -20,7 +20,6 @@ class ApiClient:
         """Initialize the API client."""
         self.config = config or ApiConfig()
         self.session = requests.Session()
-        self.session.auth = (self.config.username, self.config.password)
         self.redis_service = RedisService()
 
     def _generate_cache_key(self, endpoint_name: str, **kwargs) -> str:
@@ -91,3 +90,25 @@ class ApiClient:
             logger.error(f"Failed to cache response for {endpoint_name}: {e}")
 
         return data
+
+    def get_characters(self, ) -> Dict:
+        """
+        Get a list of all available characters.
+
+        Returns:
+            Dict: Characters available data
+
+        Raises:
+            requests.exceptions.RequestException: If API request fails
+            requests.exceptions.HTTPError: If API returns non-200 status
+            ValueError: If team_id is invalid
+            KeyError: If required fields are missing in response.
+        """
+        endpoint_key = 'get_characters'
+        try:
+            return self._make_request(
+                endpoint_key,
+            )
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to fetch {endpoint_key}:  {str(e)}")
+            raise

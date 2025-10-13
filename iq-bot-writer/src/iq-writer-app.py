@@ -4,7 +4,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-
+from services.prompt_service import PromptService
 from services.writer_service import WriterService
 
 # Load environment variables
@@ -19,29 +19,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def initialize_services():
-    """Initialize all required services and data."""
-    from services.prompt_service import PromptService
-
-    logger.info("Initializing services...")
-    prompt_service = PromptService()
-
-    logger.info("Generating initial prompts...")
-    try:
-        prompt_service.initialize_prompts()
-        logger.info("Successfully initialized all prompts")
-    except Exception as e:
-        logger.error(f"Error initializing prompts: {e}")
-        raise
-
-
 def main():
     """Main entry point for the writer service."""
     logger.info(f"Starting iq-writer at {datetime.datetime.now()}")
 
-    # Initialize all services and data
-    initialize_services()
-
+    prompt_service = PromptService()
     writer_service = WriterService()
 
     try:
@@ -50,7 +32,7 @@ def main():
 
         # Get all prompts for this template from Redis
         redis_service = writer_service.redis_service
-        prompt_keys = redis_service.get_keys(f"{template_id}:*")
+        prompt_keys = redis_service.get_keys(f"prompt:{template_id}:*")
 
         if not prompt_keys:
             logger.error(f"No prompts found for template {template_id}")

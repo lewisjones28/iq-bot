@@ -13,11 +13,10 @@ MONTH: int = 30 * DAY
 DEFAULT_TTL_SECONDS: Final[int] = HOUR
 
 # API Endpoints mapped to client methods
-# https://vlaurencena.github.io/harry-potter-openapi-swagger-ui/#/
 ENDPOINTS: Final[dict[str, dict[str, str | int]]] = {
-    'sample_endpoint': {
-        'path': '/example/{exampleId}',
-        'ttl_seconds': HOUR
+    'get_characters': {
+        'path': '/characters',
+        'ttl_seconds': MONTH
     }
 }
 
