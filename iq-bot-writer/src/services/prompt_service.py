@@ -63,24 +63,15 @@ class PromptService:
     def _generate_prompt_uuid(self, template: Dict[str, Any], parameters: Optional[Dict[str, str]] = None) -> str:
         """
         Generate a deterministic UUID based on template and parameters.
-        
-        Args:
-            template: The template to generate UUID for
-            parameters: Optional parameters if this is a parameterized template
-            
-        Returns:
-            str: A deterministic UUID string
+        Always returns the same UUID for the same input values.
         """
         # Create a unique string combining template id, topic, and parameters
         unique_string = f"{template['id']}:{template['topic']}"
         if parameters:
-            # Sort parameters to ensure consistent ordering
             param_string = ':'.join(f"{k}={v}" for k, v in sorted(parameters.items()))
             unique_string += f":{param_string}"
-        
-        # Generate a deterministic UUID using uuid5 with the namespace UUID4
-        namespace_uuid = uuid.uuid4()  # This could be made constant if you want truly deterministic UUIDs
-        return str(uuid.uuid5(namespace_uuid, unique_string))
+        # Use a constant namespace for deterministic UUIDs
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, unique_string))
 
     def initialize_prompts(self) -> None:
         """Initialize and cache all prompts from templates."""
@@ -100,6 +91,12 @@ class PromptService:
 
                 # For templates without parameters, we can generate and cache them
                 generated_prompt_uuid = self._generate_prompt_uuid(template)
+                cache_key = f"prompt:{template['id']}:{generated_prompt_uuid}"
+                cached_prompt = self.redis_service.get_cached_response(cache_key)
+                if cached_prompt:
+                    logger.info(f"Prompt {template['id']} already cached. Skipping.")
+                    continue
+
                 prompt_data = {
                     'id': generated_prompt_uuid,
                     'prompt_template_id': template['id'],
@@ -112,7 +109,7 @@ class PromptService:
 
                 # Cache the prompt
                 self.redis_service.set_cached_response(
-                    f"prompt:{template['id']}:{generated_prompt_uuid}",
+                    cache_key,
                     json.dumps(prompt_data),
                     prompt_data['ttl_seconds']
                 )

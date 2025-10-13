@@ -91,6 +91,7 @@ class WriterService:
         if cache_key:
             cached_response = self.redis_service.get_cached_response(cache_key)
             if cached_response:
+                logger.debug(f"Generated response for prompt {cached_response}")
                 return {"response": cached_response.decode('utf-8')}
 
         # Get API data for context
@@ -111,8 +112,7 @@ class WriterService:
             )
 
         return {
-            "response": response,
-            "context_data": context_data
+            "response": response
         }
 
     def _build_context(self, prompt_data: dict) -> tuple[dict, str]:

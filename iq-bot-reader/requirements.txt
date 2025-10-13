@@ -1,0 +1,5 @@
+flask
+redis
+python-dotenv
+requests
+-e ../iq-bot-global

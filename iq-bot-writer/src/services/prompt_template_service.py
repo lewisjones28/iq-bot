@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional
 
 import yaml
 
-from nrl_iq_global.prompts import TEMPLATES_PATH
+from iq_bot_global.prompts import prompts_path
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class PromptTemplateService:
             return self._templates_cache
 
         try:
-            with open(TEMPLATES_PATH, 'r') as file:
+            with open(prompts_path, 'r') as file:
                 self._templates_cache = yaml.safe_load(file)['prompts']
                 return self._templates_cache
         except Exception as e:

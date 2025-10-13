@@ -8,6 +8,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+prompts_path = Path(__file__).parent / 'resources' / 'prompt-templates.yaml'
 
 def load_prompts() -> Dict[str, Any]:
     """
@@ -21,7 +22,6 @@ def load_prompts() -> Dict[str, Any]:
         yaml.YAMLError: If YAML syntax is invalid
         KeyError: If required 'prompts' key is missing
     """
-    prompts_path = Path(__file__).parent / 'resources' / 'prompt-templates.yaml'
     try:
         with open(prompts_path, 'r') as file:
             return yaml.safe_load(file)['prompts']
