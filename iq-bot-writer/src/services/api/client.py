@@ -36,6 +36,8 @@ class ApiClient:
         """
         # Sort kwargs for consistent cache keys
         param_string = ':'.join(f"{k}:{v}" for k, v in sorted(kwargs.items()))
+        if param_string is None or len(param_string) == 0:
+            param_string = 'all'
         return f"api:{endpoint_name}:{param_string}"
 
     def _make_request(self, endpoint_name: str, **kwargs) -> Dict:

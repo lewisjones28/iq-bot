@@ -141,14 +141,18 @@ class PromptService:
         if not template:
             raise ValueError(f"No template found with id {template_id}")
 
+        # Generate UUID for cache key lookup
+        generated_prompt_uuid = self._generate_prompt_uuid(template, parameters)
+        cache_key = f"prompt:{template_id}:{generated_prompt_uuid}"
+
         # For templates without parameters, try to get from cache
         if not self.requires_parameters(template):
-            cached = self.redis_service.get_cached_response(f"prompt-template:{template_id}")
+            cached = self.redis_service.get_cached_response(cache_key)
             if cached:
                 try:
                     return json.loads(cached)
                 except json.JSONDecodeError:
-                    logger.warning(f"Invalid cached prompt for {template_id}, regenerating")
+                    logger.warning(f"Invalid cached prompt for {cache_key}, regenerating")
 
         # For templates with parameters, validate them
         variables = self.get_template_variables(template)
@@ -164,7 +168,6 @@ class PromptService:
                 )
 
         # Create the prompt data
-        generated_prompt_uuid = self._generate_prompt_uuid(template, parameters)
         prompt_data = {
             'id': generated_prompt_uuid,
             'prompt_template_id': template['id'],
@@ -179,7 +182,7 @@ class PromptService:
         # Cache only if no parameters are required
         if not variables:
             self.redis_service.set_cached_response(
-                f"prompt:{template_id}:{generated_prompt_uuid}",
+                cache_key,
                 json.dumps(prompt_data),
                 prompt_data['ttl_seconds']
             )
@@ -202,3 +205,24 @@ class PromptService:
                 'required_parameters': list(vars) if vars else []
             }
         return result
+
+    def list_cached_prompts(self) -> List[Dict[str, Any]]:
+        """
+        List all prompts currently cached in Redis.
+        
+        Returns:
+            List[Dict[str, Any]]: List of cached prompts
+        """
+        cached_prompts = []
+        for key in self.redis_service.get_keys("prompt:*"):
+            cached = self.redis_service.get_cached_response(key)
+            if cached:
+                try:
+                    prompt_data = json.loads(cached)
+                    cached_prompts.append({
+                        'cache_key': key,
+                        **prompt_data
+                    })
+                except json.JSONDecodeError:
+                    logger.warning(f"Invalid cached prompt for {key}")
+        return cached_prompts

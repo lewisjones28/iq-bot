@@ -5,5 +5,5 @@ prompts:
     topic: "general_information"
     context_keys:
       - "get_characters"
-    cache_key: "{id}:get-characters"
+    cache_key: "prompt-response:{id}:get-characters"
     ttl_seconds: 7200  # 2 hours
