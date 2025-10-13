@@ -1,19 +1,14 @@
 """Writer service for generating and managing prompt-contents responses."""
-import inspect
+import json
 import logging
-from typing import Any
-
-logger = logging.getLogger(__name__)
-
 from iq_bot_global import (
-    get_prompt_by_id,
     RedisService,
-    extract_context_params,
-    build_single_context
+    extract_context_params
 )
-from services.api.client import ApiClient
-from services.openai_service import OpenAIService
-from services.style_parser import StyleParser
+from .api.client import ApiClient
+from .openai_service import OpenAIService
+from .style_parser import StyleParser
+logger = logging.getLogger(__name__)
 
 
 class WriterService:
@@ -26,204 +21,122 @@ class WriterService:
         self.style_parser = StyleParser()
         self.api_client = ApiClient()
 
-    def _build_prompt_data(self, prompt_topic: str, context_data: dict) -> str:
-        """Build prompt-contents resources using all context keys from the resources dictionary.""
+    def generate_prompt_response(self, prompt_template_id: str, prompt_id: str) -> dict:
         """
-        with open(f'../resources/prompt-contents/{prompt_topic}.txt', 'r') as file:
-            content_template = file.read()
-
-        # Create formatting dictionary where each key is prefixed with 'f'
-        format_dict = {
-            f"f{key}": value
-            for key, value in context_data.items()
-        }
-
-        try:
-            return content_template.format(**format_dict)
-        except KeyError as e:
-            raise ValueError(f"Missing required key in template: {e}")
-
-    def _build_system(self, question: str, style_guide: str) -> str:
-        """Build system prompt-contents with style guide context."""
-        with open('../resources/system/system.txt', 'r') as file:
-            system_template = file.read()
-        return system_template.format(
-            fprompt=str(question),
-            fstyle_guide=str(style_guide)
-        )
-
-    def _get_context_data(self, context_key: str, params: dict) -> Any:
-        """
-        Get resources based on context key from configuration.
-        Dynamically maps parameters from prompt contexts to method arguments
-        and includes all enriched parameters in the result.
+        Generate a response using the cached prompt from Redis.
 
         Args:
-            context_key: The method name to call on the client
-            params: Dictionary of parameters extracted from prompt contexts
+            prompt_template_id: ID of the template to use for finding prompts
+            prompt_id: The ID of the prompt to use
 
         Returns:
-            Any: The resources returned from the client method, merged with all params
+            dict: Generated response with metadata
 
         Raises:
-            ValueError: If method not found or parameters invalid
+            ValueError: If prompt not found or invalid
         """
+        # Get prompt configuration from Redis
+        redis_key = f"{prompt_template_id}:{prompt_id}"
+        cached_prompt = self.redis_service.get_cached_response(redis_key)
+
+        if not cached_prompt:
+            logger.debug(f"No cached prompt found for key: {redis_key}")
+            raise ValueError(f"No prompt found with key {redis_key}")
+
         try:
-            method = getattr(self.api_client, context_key)
+            # Parse and validate prompt configuration
+            prompt_data = json.loads(cached_prompt.decode('utf-8'))
+            required_fields = ['topic', 'title', 'context_keys']
+            if not all(field in prompt_data for field in required_fields):
+                raise ValueError(f"Invalid prompt configuration: missing required fields {required_fields}")
 
-            # Get the method's required parameters
-            method_params = inspect.signature(method).parameters
+            # Generate response using prompt configuration
+            response = self._process_cached_prompt(prompt_data)
 
-            # Build parameters dictionary based on method's requirements
-            call_params = {}
-            for param_name in method_params:
-                # Remove '_id' suffix for matching
-                base_name = param_name.replace('_id', '')
-                # Check if we have this parameter in our contexts
-                if base_name in params:
-                    call_params[param_name] = params[base_name]
+            # Add metadata to response
+            response.update({
+                "prompt_id": prompt_id,
+                "prompt_template_id": prompt_template_id,
+                "topic": prompt_data['topic'],
+                "context_keys": prompt_data['context_keys']
+            })
 
-            # Get the raw response from the API
-            raw_response = method(**call_params)
-            return raw_response
-        except AttributeError:
-            raise ValueError(f"Method {context_key} not found in API client")
+            return response
+
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON in cached prompt: {redis_key}")
+            raise ValueError("Invalid prompt configuration format")
         except Exception as e:
-            raise ValueError(f"Error calling {context_key}: {str(e)}")
+            logger.error(f"Error generating response using cached prompt: {e}")
+            raise
 
-    def _generate_response(self, prompt_id: str, context_values: dict) -> dict:
+    def _process_cached_prompt(self, prompt_data: dict) -> dict:
         """
-        Generate a response for a specific combination of context values.
-        
+        Process a cached prompt and generate a response.
+
         Args:
-            prompt_id: The ID of the prompt to use
-            context_values: Dictionary with single values for each context
-            
+            prompt_data: The cached prompt data
+
         Returns:
-            dict: Response resources including the generated text and context values used
+            dict: Generated response data
         """
-        prompt_config = get_prompt_by_id(prompt_id)
-        if not prompt_config:
-            raise ValueError(f"No prompt found with ID: {prompt_id}")
+        # Build context and get cache key
+        params, cache_key = self._build_context(prompt_data)
 
-        # Format the context values into the expected structure
-        formatted_contexts = {
-            "promptContexts": []
-        }
+        # Check cache if available
+        if cache_key:
+            cached_response = self.redis_service.get_cached_response(cache_key)
+            if cached_response:
+                return {"response": cached_response.decode('utf-8')}
 
-        # Add main context
-        for key, value in context_values.items():
-            if not key.startswith("compared_") and not key.endswith("_compare"):
-                formatted_contexts["promptContexts"].append({
-                    "name": key,
-                    "values": [value] if not isinstance(value, list) else value,
-                    "compare": context_values.get(f"{key}_compare", False)
-                })
+        # Get API data for context
+        context_data = self._get_api_data(params, prompt_data.get("context_keys", []))
 
-                # If this is a comparison context, add the compared value
-                if context_values.get(f"{key}_compare", False):
-                    compared_value = context_values.get(f"compared_{key}")
-                    if compared_value:
-                        formatted_contexts["promptContexts"][-1]["compare_with"] = compared_value
+        # Build prompt and system message
+        prompt_content, system = self._build_prompt(prompt_data, context_data)
 
-        # Extract parameters and format cache key
-        params = extract_context_params(prompt_id, formatted_contexts)
+        # Generate response
+        response = self.openai_service.generate_response(prompt_content, system)
 
-        # Store enriched params to use in context data later
-        enriched_params = params.copy()
-
-        # Use original params for cache key to maintain backwards compatibility
-        cache_key = prompt_config["cache_key"].format(**params)
-
-        # Check cache first
-        logger.debug(f"Checking cache for key: {cache_key}")
-        cached_response = self.redis_service.get_cached_response(cache_key)
-        if cached_response:
-            logger.info(f"Cache hit for key: {cache_key}")
-            return {
-                "response": cached_response.decode('utf-8'),
-            }
-        logger.debug(f"Cache miss for key: {cache_key}")
-
-        # Get the style guide (only need to do this once)
-        logger.debug(f"Loading style guide for prompt_id: {prompt_id}")
-        style_guide = self.style_parser.get_style_guide()
-
-        # Fetch resources based on context keys
-        context_data = enriched_params.copy()  # Start with all enriched params
-        for context_key in prompt_config["context_keys"]:
-            api_data = self._get_context_data(context_key, enriched_params)
-            # Store API response under the context key to avoid conflicts
-            context_data[context_key] = api_data
-
-        # Build prompts
-        logger.debug(f"Building prompts for topic: {prompt_config['topic']}")
-        prompt_data = self._build_prompt_data(prompt_config["topic"], context_data)
-        prompt_question = prompt_config["title"].format(**context_data)
-        system = self._build_system(prompt_question, style_guide)
-        logger.debug(f"Prompts built successfully")
-
-        # Generate response using OpenAI
-        response = self.openai_service.generate_response(prompt_data, system)
-
-        # Cache the response
-        logger.debug(f"Caching response with key: {cache_key}")
-        self.redis_service.set_cached_response(
-            cache_key,
-            response,
-            prompt_config["ttl_seconds"]
-        )
-        logger.debug(f"Response cached successfully")
+        # Cache if cache key is available
+        if cache_key:
+            self.redis_service.set_cached_response(
+                cache_key,
+                response,
+                prompt_data.get('ttl_seconds', 3600)
+            )
 
         return {
-            "response": response
+            "response": response,
+            "context_data": context_data
         }
 
-    def _generate_responses(self, prompt_id: str, context: dict) -> list:
+    def _build_context(self, prompt_data: dict) -> tuple[dict, str]:
         """
-        Recursively generate responses for all combinations of context values.
-        
-        Args:
-            prompt_id: The ID of the prompt to use
-            context: Dictionary of context values, where values can be single items or lists
-            
-        Returns:
-            list: List of generated responses, one for each combination
-        """
-        responses = []
-
-        # Create new context with this single value
-        new_context = build_single_context(context)
-        # Recursively process this new context
-        sub_responses = self._generate_responses(prompt_id, new_context)
-        responses.extend(sub_responses)
-        # No more lists to process, generate response for this combination
-
-        try:
-            response_data = self._generate_response(prompt_id, context)
-            responses.append(response_data)
-        except Exception as e:
-            logger.error(f"Error generating response for context {context}: {e}")
-            responses.append({
-                "error": str(e)})
-
-        return responses
-
-
-    def generate_prompt_response(self, prompt_id: str, prompt_contexts: dict) -> list:
-        """
-        Generate responses for all combinations of prompt contexts.
+        Build context data and cache key from prompt configuration.
+        Ensures prompt_data has required context values.
 
         Args:
-            prompt_id: The ID of the prompt to use
-            prompt_contexts: Dictionary containing context values for the prompt
+            prompt_data: The prompt configuration from Redis
 
         Returns:
-            list: List of generated responses with their context values
-
-        Raises:
-            ValueError: If prompt not found or context resources invalid
+            tuple[dict, str]: Context data and cache key
         """
 
-        # Generate responses recursively
-        return self._generate_responses(prompt_id, prompt_contexts)
+        # Format contexts structure
+        formatted_contexts = {
+            "promptContexts": [
+                {
+                    "name": key,
+                    "values": value if isinstance(value, list) else [value],
+                    "compare": prompt_data.get('compare', False)
+                }
+                for key, value in prompt_data.items()
+            ]
+        }
+
+        # Extract parameters for API calls and cache key
+        params = extract_context_params(prompt_data['id'], formatted_contexts)
+        cache_key = prompt_data['cache_key'].format(**params) if 'cache_key' in prompt_data else None
+
+        return params, cache_key

@@ -1,8 +1,8 @@
 prompts:
-  general_statistics:
+  general_information:
     id: "5a6412f7-22b7-4a1a-8113-d36d4a9f0b6f"
-    title: "What "
-    topic: "general_statistics"
+    title: "What house does {character} belong to?"
+    topic: "general_information"
     context_keys:
       - "get_api_data"
     cache_key: "{id}"

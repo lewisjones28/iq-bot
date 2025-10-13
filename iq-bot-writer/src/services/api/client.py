@@ -5,8 +5,8 @@ import logging
 from typing import Optional, Dict
 
 import requests
-
 from iq_bot_global import RedisService
+
 from .config import ApiConfig
 from .endpoints import get_endpoint_path, get_endpoint_ttl
 

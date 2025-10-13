@@ -11,17 +11,17 @@ logger = logging.getLogger(__name__)
 
 def load_prompts() -> Dict[str, Any]:
     """
-    Load all prompts from the prompts.yaml configuration file.
+    Load all prompts from the prompt-templates.yaml configuration file.
     
     Returns:
         Dict[str, Any]: Dictionary containing all prompts and their configurations.
 
     Raises:
-        FileNotFoundError: If prompts.yaml doesn't exist
+        FileNotFoundError: If prompt-templates.yaml doesn't exist
         yaml.YAMLError: If YAML syntax is invalid
         KeyError: If required 'prompts' key is missing
     """
-    prompts_path = Path(__file__).parent / 'resources' / 'prompts.yaml'
+    prompts_path = Path(__file__).parent / 'resources' / 'prompt-templates.yaml'
     try:
         with open(prompts_path, 'r') as file:
             return yaml.safe_load(file)['prompts']

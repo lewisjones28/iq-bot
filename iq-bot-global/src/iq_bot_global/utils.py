@@ -3,24 +3,6 @@
 from typing import Dict, Any
 
 
-def build_single_context(
-        base_context: Dict[str, Any],
-) -> Dict[str, Any]:
-    """
-    Build a context dictionary for a single value while preserving other contexts.
-    
-    Args:
-        base_context: Original context dictionary
-        list_key: Key of the list being processed
-        value: Value to process
-        
-    Returns:
-        New context dictionary with single value
-    """
-    new_context = base_context.copy()
-    return new_context
-
-
 def extract_context_params(prompt_id: str, prompt_contexts: dict) -> Dict[str, Any]:
     """
     Dynamically extract parameters from prompt contexts and enrich with mappings.
@@ -42,7 +24,7 @@ def extract_context_params(prompt_id: str, prompt_contexts: dict) -> Dict[str, A
             continue
 
         # Store the primary value
-        value = values[0]  # We always take the first value since _generate_responses handles iteration
+        value = values[0]
         params[param_key] = value
 
     return params
