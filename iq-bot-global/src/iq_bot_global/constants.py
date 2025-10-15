@@ -72,7 +72,7 @@ REDIS_KEYS = RedisKeys()
 class OpenAIDefaults:
     """OpenAI configuration defaults."""
     MODEL: str = "gpt-3.5-turbo"
-    TEMPERATURE: float = 0.2
+    TEMPERATURE: float = 0.4
 
 
 OPENAI_DEFAULTS = OpenAIDefaults()
