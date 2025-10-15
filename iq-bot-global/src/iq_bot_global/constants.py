@@ -69,13 +69,13 @@ REDIS_KEYS = RedisKeys()
 
 # API configuration
 @dataclass(frozen=True)
-class APIDefaults:
-    """API configuration defaults."""
-    MODEL: str = "gpt-4.1-nano"
-    TEMPERATURE: float = 0.3
+class OpenAIDefaults:
+    """OpenAI configuration defaults."""
+    MODEL: str = "gpt-3.5-turbo"
+    TEMPERATURE: float = 0.2
 
 
-API_DEFAULTS = APIDefaults()
+OPENAI_DEFAULTS = OpenAIDefaults()
 
 
 # API response messages

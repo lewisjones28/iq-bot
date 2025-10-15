@@ -14,7 +14,7 @@ from services.writer_service import WriterService
 load_dotenv()
 
 # Configure logging
-log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+log_level = os.getenv('LOG_LEVEL', 'DEBUG').upper()
 logging.basicConfig(
     level=getattr(logging, log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -95,7 +95,7 @@ def main():
 
                         logger.info(f"Generating response for prompt {prompt_id} (template: {template_id})")
                         response = writer_service.generate_prompt_response(template_id, prompt_id)
-                        logger.info(f"Successfully generated response for prompt {prompt_id}")
+                        logger.info(f"Successfully generated response {response} for prompt {prompt_id}")
 
                         successful_prompts += 1
                         total_prompts_processed += 1
