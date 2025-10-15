@@ -97,12 +97,12 @@ def format_template_with_nested_params(template_str: str, params: Dict[str, Any]
     """
     format_params = {}
     required_params = extract_template_params(template_str)
-    
+
     for param in required_params:
         found, value = find_param_in_dict(param, params)
         if found:
             format_params[param] = value
-    
+
     return template_str.format(**format_params)
 
 

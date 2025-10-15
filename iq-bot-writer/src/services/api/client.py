@@ -135,3 +135,24 @@ class ApiClient:
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to fetch {endpoint_key}:  {str(e)}")
             raise
+
+    def get_houses(self, ) -> Dict:
+        """
+        Get a list of all available houses.
+
+        Returns:
+            Dict: Houses available data
+
+        Raises:
+            requests.exceptions.RequestException: If API request fails
+            requests.exceptions.HTTPError: If API returns non-200 status
+            KeyError: If required fields are missing in response.
+        """
+        endpoint_key = 'get_houses'
+        try:
+            return self._make_request(
+                endpoint_key,
+            )
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to fetch {endpoint_key}:  {str(e)}")
+            raise

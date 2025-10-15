@@ -2,9 +2,8 @@
 import hashlib
 import json
 import logging
-import re
 import uuid
-from typing import Dict, Any, List, Set
+from typing import Dict, Any, List
 
 from iq_bot_global.constants import REDIS_KEYS, CACHE_TTL
 from iq_bot_global.services.redis_service import RedisService
@@ -26,8 +25,6 @@ class PromptService:
         """Initialize the prompt service with required dependencies."""
         self.redis_service = RedisService()
         self.template_service = PromptTemplateService()
-
-
 
     def initialize_prompts(self, data_sources: Dict[str, List[Any]]):
         """Initialize all prompts from templates and cache them.

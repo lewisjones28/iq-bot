@@ -1,17 +1,16 @@
 """IQ Writer Application."""
 import datetime
-import json
 import logging
 import os
 
 from dotenv import load_dotenv
 
 from iq_bot_global.constants import REDIS_GENERATED_PROMPT_KEY
+from iq_bot_global.services.redis_service import RedisService
 from services.api.client import ApiClient
 from services.prompt_service import PromptService
 from services.prompt_template_service import PromptTemplateService
 from services.writer_service import WriterService
-from iq_bot_global.services.redis_service import RedisService
 
 # Load environment variables
 load_dotenv()
@@ -24,6 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 redis_service = RedisService()
+
 
 def initialize_services():
     """Initialize all required services and data."""
