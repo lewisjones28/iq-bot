@@ -2,21 +2,16 @@
 
 from typing import Final
 
-# Cache duration constants
-MINUTE: int = 60
-HOUR: int = 60 * MINUTE
-DAY: int = 24 * HOUR
-WEEK: int = 7 * DAY
-MONTH: int = 30 * DAY
+from iq_bot_global.constants import CACHE_TTL
 
 # Default TTL if not specified
-DEFAULT_TTL_SECONDS: Final[int] = HOUR
+DEFAULT_TTL_SECONDS: Final[int] = CACHE_TTL.HOUR
 
 # API Endpoints mapped to client methods
 ENDPOINTS: Final[dict[str, dict[str, str | int]]] = {
     'get_characters': {
         'path': '/characters',
-        'ttl_seconds': MONTH
+        'ttl_seconds': CACHE_TTL.WEEK
     }
 }
 

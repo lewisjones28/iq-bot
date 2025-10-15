@@ -16,3 +16,6 @@ response_format:
 guidelines:
   - make harry potter information accessible and meaningful
   - use natural, conversational language
+  - exclude conversational greetings and farewells, assuming the user is in the middle of a conversation
+  - do not ask the user follow-up questions in responses
+  - only use the harry potter information that is provided to you and do not use the web

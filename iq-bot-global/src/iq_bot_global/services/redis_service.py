@@ -7,6 +7,8 @@ from typing import Optional
 import redis
 from dotenv import load_dotenv
 
+from iq_bot_global.constants import REDIS_CONFIG, CACHE_TTL
+
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -18,21 +20,39 @@ class RedisService:
     _instance = None
 
     def __new__(cls):
-        """Implement singleton pattern to ensure only one Redis connection is created."""
+        """
+        Implement singleton pattern to ensure only one Redis connection is created.
+        
+        Returns:
+            RedisService: The singleton instance of the service
+            
+        Raises:
+            Exception: If singleton instantiation fails
+        """
         if cls._instance is None:
             cls._instance = super(RedisService, cls).__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
     def __init__(self):
-        """Initialize Redis connection using environment variables."""
+        """
+        Initialize Redis connection using environment variables.
+        
+        Environment Variables:
+            REDIS_HOST: Redis server hostname (default: localhost)
+            REDIS_PORT: Redis server port (default: 6379)
+            REDIS_PASSWORD: Redis server password (default: '')
+            
+        Raises:
+            redis.RedisError: If connection cannot be established
+        """
         if self._initialized:
             return
 
         self.redis_client = redis.Redis(
-            host=os.getenv('REDIS_HOST', 'localhost'),
-            port=int(os.getenv('REDIS_PORT', 6379)),
-            password=os.getenv('REDIS_PASSWORD', ''),
+            host=os.getenv('REDIS_HOST', REDIS_CONFIG.DEFAULT_HOST),
+            port=int(os.getenv('REDIS_PORT', REDIS_CONFIG.DEFAULT_PORT)),
+            password=os.getenv('REDIS_PASSWORD', REDIS_CONFIG.DEFAULT_PASSWORD),
             decode_responses=False
         )
         self._initialized = True
@@ -57,14 +77,14 @@ class RedisService:
             logger.error(f"Redis error: {e}")
             return None
 
-    def set_cached_response(self, cache_key: str, response: str, ttl_seconds: int = 3600) -> bool:
+    def set_cached_response(self, cache_key: str, response: str, ttl_seconds: int = CACHE_TTL.DEFAULT) -> bool:
         """
         Cache a response in Redis with TTL.
         
         Args:
             cache_key: The key to store the response under
             response: The response string or bytes to cache
-            ttl_seconds: Time-to-live in seconds (default: 1 hour)
+            ttl_seconds: Time-to-live in seconds (default: global default TTL)
             
         Returns:
             bool: True if successfully cached, False if operation failed
