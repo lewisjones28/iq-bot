@@ -1,10 +1,12 @@
 import logging
+import os
 
 from flasgger import Swagger
 from flask import Flask
 
 from api.routes import api
 from api.swagger_template import SWAGGER_TEMPLATE, SWAGGER_CONFIG
+from iq_bot_global.constants import FLASK_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -25,4 +27,5 @@ if __name__ == '__main__':
     )
 
     app = create_app()
-    app.run(debug=True)
+    port = int(os.getenv('PORT', FLASK_CONFIG.DEFAULT_PORT))
+    app.run(host=FLASK_CONFIG.DEFAULT_HOST, port=port, debug=True)

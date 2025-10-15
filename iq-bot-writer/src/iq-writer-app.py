@@ -1,14 +1,17 @@
 """IQ Writer Application."""
 import datetime
+import json
 import logging
 import os
 
 from dotenv import load_dotenv
 
 from iq_bot_global.constants import REDIS_GENERATED_PROMPT_KEY
+from services.api.client import ApiClient
 from services.prompt_service import PromptService
 from services.prompt_template_service import PromptTemplateService
 from services.writer_service import WriterService
+from iq_bot_global.services.redis_service import RedisService
 
 # Load environment variables
 load_dotenv()
@@ -20,17 +23,19 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
+redis_service = RedisService()
 
 def initialize_services():
     """Initialize all required services and data."""
     logger.info("Initializing services...")
     prompt_service = PromptService()
-
+    api_service = ApiClient()
     logger.info("Gathering data sources...")
     try:
         # Gather all required data upfront
+        spells = api_service.get_spells()
         data_sources = {
+            'spells': spells if spells else []
         }
         logger.info("Generating initial prompts...")
         prompt_service.initialize_prompts(data_sources)
@@ -72,7 +77,6 @@ def main():
                 logger.info(f"Processing template {template_id}")
 
                 # Get all prompts for this template from Redis
-                redis_service = writer_service.redis_service
                 prompt_keys = redis_service.get_keys(f"{REDIS_GENERATED_PROMPT_KEY}{template_id}:*")
 
                 if not prompt_keys:
