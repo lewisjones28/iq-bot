@@ -7,6 +7,7 @@ from typing import Optional, Dict
 import requests
 
 from iq_bot_global import RedisService
+from iq_bot_global.constants import REDIS_KEYS
 from .config import ApiConfig
 from .endpoints import get_endpoint_path, get_endpoint_ttl
 
@@ -38,7 +39,7 @@ class ApiClient:
         param_string = ':'.join(f"{k}:{v}" for k, v in sorted(kwargs.items()))
         if param_string is None or len(param_string) == 0:
             param_string = 'all'
-        return f"api:{endpoint_name}:{param_string}"
+        return f"{REDIS_KEYS.API_CACHE_PREFIX}:{endpoint_name}:{param_string}"
 
     def _make_request(self, endpoint_name: str, **kwargs) -> Dict:
         """

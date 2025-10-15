@@ -1,9 +1,10 @@
 prompts:
-  general_information:
-    id: "5a6412f7-22b7-4a1a-8113-d36d4a9f0b6f"
-    title: "Who are the characters in Harry Potter?"
-    topic: "general_information"
-    context_keys:
-      - "get_characters"
-    cache_key: "prompt-response:{id}:get-characters"
-    ttl_seconds: 7200  # 2 hours
+  character_prompts:
+    - id: "5a6412f7-22b7-4a1a-8113-d36d4a9f0b6f"
+      title: "Who are the characters in Harry Potter?"
+      topic: "character_prompts"
+      context_keys:
+        - "get_characters"
+      cache_key: "iq:prompt-response:{id}:get-characters"
+      ttl_seconds: 7200  # 2 hours
+      enabled: true

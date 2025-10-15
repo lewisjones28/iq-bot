@@ -2,4 +2,5 @@ flask
 redis
 python-dotenv
 requests
+flasgger>=0.9.7b2
 -e ../iq-bot-global

@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional
 
 import yaml
 
-from iq_bot_global.prompts import prompts_path
+from iq_bot_global.prompts import TEMPLATES_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class PromptTemplateService:
             return self._templates_cache
 
         try:
-            with open(prompts_path, 'r') as file:
+            with open(TEMPLATES_PATH, 'r') as file:
                 self._templates_cache = yaml.safe_load(file)['prompts']
                 return self._templates_cache
         except Exception as e:
@@ -45,9 +45,11 @@ class PromptTemplateService:
             Optional[Dict[str, Any]]: Prompt template configuration dictionary if found.
         """
         templates = self.load_templates()
-        for template in templates.values():
-            if template['id'] == template_id:
-                return template
+        for topic_templates in templates.values():
+            if isinstance(topic_templates, list):
+                for template in topic_templates:
+                    if isinstance(template, dict) and template.get('id') == template_id:
+                        return template
         return None
 
     def get_template(self, template_key: str) -> Optional[Dict[str, Any]]:
