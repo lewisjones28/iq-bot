@@ -211,7 +211,6 @@ class WriterService:
                 {
                     "name": key,
                     "values": value if isinstance(value, list) else [value],
-                    "compare": prompt_data.get('compare', False)
                 }
                 for key, value in prompt_data.items()
             ]

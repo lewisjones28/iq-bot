@@ -2,13 +2,16 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 
+from iq_bot_global.constants import FilePaths
+
 logger = logging.getLogger(__name__)
 import yaml
 
 
 class StyleParser:
     def __init__(self):
-        self.style_guide_path = Path(__file__).parent.parent.parent / 'resources' / 'style-guide' / 'guide.yaml'
+        self.style_guide_path = Path(
+            __file__).parent.parent.parent / FilePaths.RESOURCES_DIR / FilePaths.STYLE_GUIDE_DIR / FilePaths.STYLE_GUIDE_FILE
 
     def load_style_guide(self) -> Dict[str, Any]:
         """Load and parse the style guide YAML file."""

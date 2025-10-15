@@ -54,6 +54,17 @@ class RedisConfig:
 REDIS_CONFIG = RedisConfig()
 
 
+# Flask configuration
+@dataclass(frozen=True)
+class FlaskConfig:
+    """Flask application configuration defaults."""
+    DEFAULT_HOST: str = "0.0.0.0"
+    DEFAULT_PORT: int = 6000
+
+
+FLASK_CONFIG = FlaskConfig()
+
+
 # Redis key patterns
 @dataclass(frozen=True)
 class RedisKeys:
@@ -71,7 +82,7 @@ REDIS_KEYS = RedisKeys()
 @dataclass(frozen=True)
 class OpenAIDefaults:
     """OpenAI configuration defaults."""
-    MODEL: str = "gpt-3.5-turbo"
+    MODEL: str = "gpt-4.1-nano"
     TEMPERATURE: float = 0.4
 
 

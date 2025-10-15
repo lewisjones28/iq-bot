@@ -7,4 +7,33 @@ prompts:
         - "get_characters"
       cache_key: "iq:prompt-response:{id}:get-characters"
       ttl_seconds: 7200  # 2 hours
+      enabled: false
+
+  spell_prompts:
+    - id: "72ae38b3-2331-4c4f-a2bd-8baa006d1cda"
+      title: "What are the spells in Harry Potter?"
+      topic: "spell_prompts"
+      context_keys:
+        - "get_spells"
+      cache_key: "iq:prompt-response:{id}:get-spells"
+      ttl_seconds: 7200  # 2 hours
+      enabled: false
+
+    - id: "4e54139b-77a0-463e-bd78-ceddd6fc2922"
+      title: "What use does {spell} serve in Harry Potter?"
+      topic: "spell_prompts"
+      context_keys:
+        - "get_spells"
+      cache_key: "iq:prompt-response:{id}:spell:{spell}:get-spell-use"
+      ttl_seconds: 7200  # 2 hours
+      enabled: false
+
+  house_prompts:
+    - id: "9d707f97-fcc0-4522-889a-6c8404d7f6c3"
+      title: "What are the houses in Harry Potter?"
+      topic: "house_prompts"
+      context_keys:
+        - "get_houses"
+      cache_key: "iq:prompt-response:{id}:get-houses"
+      ttl_seconds: 7200  # 2 hours
       enabled: true

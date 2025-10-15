@@ -12,6 +12,14 @@ ENDPOINTS: Final[dict[str, dict[str, str | int]]] = {
     'get_characters': {
         'path': '/characters',
         'ttl_seconds': CACHE_TTL.WEEK
+    },
+    'get_spells': {
+        'path': '/spells',
+        'ttl_seconds': CACHE_TTL.WEEK
+    },
+    'get_houses': {
+        'path': '/houses',
+        'ttl_seconds': CACHE_TTL.WEEK
     }
 }
 

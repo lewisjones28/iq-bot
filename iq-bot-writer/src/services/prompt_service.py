@@ -7,7 +7,12 @@ from typing import Dict, Any, List
 
 from iq_bot_global.constants import REDIS_KEYS, CACHE_TTL
 from iq_bot_global.services.redis_service import RedisService
-from iq_bot_global.utils import extract_template_params, generate_param_combinations
+from iq_bot_global.utils import (
+    extract_template_params,
+    generate_param_combinations,
+    validate_template_params,
+    format_template_with_nested_params
+)
 from services.prompt_template_service import PromptTemplateService
 
 logger = logging.getLogger(__name__)
@@ -140,9 +145,10 @@ class PromptService:
                     template_param_name = param_name[:-1] if param_name.endswith('s') else param_name
                     if isinstance(param_value, dict):
                         # For dictionary parameters, add both the raw dict and common fields
-                        format_params[template_param_name] = param_value
+                        format_params[template_param_name] = param_value[template_param_name]
                         for key, value in param_value.items():
-                            format_params[f"{template_param_name}_{key}"] = value
+                            if format_params[template_param_name] != value:
+                                format_params[f"{template_param_name}_{key}"] = value
                     else:
                         format_params[template_param_name] = param_value
 
@@ -163,7 +169,12 @@ class PromptService:
                     else:
                         cache_key_params[template_param_name] = param_value
 
-                response_cache_key = template.get('cache_key', '').format(**cache_key_params)
+                cache_key_template = template.get('cache_key', '')
+                if cache_key_template and validate_template_params(cache_key_template, cache_key_params):
+                    response_cache_key = format_template_with_nested_params(cache_key_template, cache_key_params)
+                else:
+                    logger.warning("Invalid or missing cache key template parameters")
+                    response_cache_key = ''
 
                 # Build prompt data with all available parameters
                 prompt_data = {
@@ -173,7 +184,6 @@ class PromptService:
                     'topic': template['topic'],
                     'cache_key': response_cache_key,
                     'context_keys': template['context_keys'],
-                    'compare': template.get('compare', False),
                     'ttl_seconds': template.get('ttl_seconds', 3600),
                     'enabled': template.get('enabled', True)
                 }
